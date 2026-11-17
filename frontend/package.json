@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:wave": "esbuild verify/wave-engine.test.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=verify/dist/engine.test.mjs && esbuild verify/wave-service.test.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=verify/dist/service.test.mjs && node --test verify/dist/engine.test.mjs verify/dist/service.test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

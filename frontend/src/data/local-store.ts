@@ -57,3 +57,36 @@ export function resetRows(key: string): EntryRow[] {
 export function storageKey(): string {
   return STORAGE_KEY
 }
+
+/** 模块行之外的独立存储键（如调度波次重排结果数据），同样持久化在 localStorage。 */
+export function readKey<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return clone(fallback)
+  }
+  const raw = window.localStorage.getItem(key)
+  if (!raw) {
+    return clone(fallback)
+  }
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return clone(fallback)
+  }
+}
+
+export function writeKey<T>(key: string, value: T): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem(key, JSON.stringify(value))
+  }
+}
+
+export function removeKey(key: string): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.removeItem(key)
+  }
+}
+
+/** 清掉内存缓存，下次读取重新从 localStorage（或示例数据）加载。 */
+export function resetCache(): void {
+  cache = null
+}

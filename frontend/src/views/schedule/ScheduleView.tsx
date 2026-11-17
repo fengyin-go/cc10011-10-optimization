@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { downloadEntries, listEntries, moduleMeta, runAction as applyAction } from '@/api/local-service'
+import { listRearrangements } from '@/api/wave-service'
+import WaveRearrangePanel from '@/views/common/WaveRearrangePanel'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('schedule')
@@ -25,26 +27,13 @@ const statuses = [
   "已启用",
   "已停用"
 ]
-const stats = [
-  {
-    "label": "调度规则总数",
-    "value": 0
-  },
-  {
-    "label": "已启用规则",
-    "value": 0
-  },
-  {
-    "label": "待校验规则",
-    "value": 0
-  }
-]
 
 export default function ScheduleView() {
   const [rows, setRows] = useState<EntryRow[]>([])
   const [total, setTotal] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [rearrangeCount, setRearrangeCount] = useState(0)
   const filterFields = useMemo(() => columns.slice(0, 3), [])
 
   const reload = useCallback(() => {
@@ -53,6 +42,7 @@ export default function ScheduleView() {
       const payload = listEntries(meta.key, filters)
       setRows(payload.items)
       setTotal(payload.total)
+      setRearrangeCount(listRearrangements().length)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '调度编排列表读取失败')
     }
@@ -72,12 +62,22 @@ export default function ScheduleView() {
     reload()
   }
 
+  const stats = useMemo(
+    () => [
+      { label: '调度规则总数', value: rows.length },
+      { label: '已启用规则', value: rows.filter((row) => String(row.status) === '已启用').length },
+      { label: '待校验规则', value: rows.filter((row) => String(row.status) === '待校验').length },
+      { label: '波次重排结果数', value: rearrangeCount },
+    ],
+    [rows, rearrangeCount],
+  )
+
   return (
     <section className="page" data-module="schedule">
       <header className="page-head">
         <div>
           <h2>调度编排管理</h2>
-          <p className="page-desc">维护调度规则的输入、执行约束与结果记录，为调度编排提供可验证的数据工程流程。</p>
+          <p className="page-desc">维护调度规则的输入、执行约束与结果记录；修改最大并发或优先级后在此重排采集波次，规则编号用于识别调度编排记录并与调度规则核对。</p>
         </div>
         <div className="page-actions">
           <button className="btn primary" type="button" onClick={() => setErrorMessage('调度规则登记入口尚未接入审批流')}>
@@ -150,6 +150,8 @@ export default function ScheduleView() {
           )}
         </tbody>
       </table>
+
+      <WaveRearrangePanel onAfterRearrange={reload} />
 
       <footer className="page-foot">
         <span>共 {total} 条调度编排记录</span>
